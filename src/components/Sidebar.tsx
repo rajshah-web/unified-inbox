@@ -7,11 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Inbox, Layers, Trash2 } from "lucide-react";
+import { Inbox, Layers, Trash2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ onNavigate }: SidebarProps) {
   const pages = useAppStore((state) => state.pages);
   const activePageFilter = useAppStore((state) => state.activePageFilter);
   const setFilter = useAppStore((state) => state.setFilter);
@@ -24,19 +28,35 @@ export function Sidebar() {
 
   const allCount = conversations.length;
 
+  const handleFilterClick = (filter: string) => {
+    setFilter(filter);
+    onNavigate?.();
+  };
+
   const handleDeletePage = (pageId: string, pageName: string) => {
     removePage(pageId);
     toast.success(`"${pageName}" removed successfully.`);
   };
 
   return (
-    <div className="flex h-full w-[280px] flex-col border-r bg-muted/20">
+    <div className="flex h-full w-full md:w-[280px] flex-col border-r bg-muted/20">
       <div className="p-4 flex items-center justify-between border-b h-14">
         <h2 className="font-semibold text-lg flex items-center gap-2">
           <Layers className="h-5 w-5 text-primary" />
           Inboxes
         </h2>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          {/* Back button on mobile */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 md:hidden text-muted-foreground"
+            onClick={onNavigate}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="p-4">
@@ -46,9 +66,9 @@ export function Sidebar() {
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-1 mb-6">
           <button
-            onClick={() => setFilter("ALL")}
+            onClick={() => handleFilterClick("ALL")}
             className={cn(
-              "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+              "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
               activePageFilter === "ALL" ? "bg-accent text-accent-foreground" : "text-muted-foreground"
             )}
           >
@@ -73,15 +93,15 @@ export function Sidebar() {
               <div
                 key={page.id}
                 className={cn(
-                  "group flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
+                  "group flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
                   activePageFilter === page.id ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground"
                 )}
               >
                 <button
-                  onClick={() => setFilter(page.id)}
+                  onClick={() => handleFilterClick(page.id)}
                   className="flex items-center truncate flex-1 text-left"
                 >
-                  <div className="mr-2 h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary shrink-0">
+                  <div className="mr-2 h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">
                     {page.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="truncate">{page.name}</span>

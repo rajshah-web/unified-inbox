@@ -8,11 +8,23 @@ import { ChatDetail } from "@/components/ChatDetail";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+// Mobile view states: sidebar | list | chat
+type MobileView = "sidebar" | "list" | "chat";
+
 export default function Home() {
   const setConversations = useAppStore((state) => state.setConversations);
   const setIsFetching = useAppStore((state) => state.setIsFetching);
   const pages = useAppStore((state) => state.pages);
+  const activeConversationId = useAppStore((state) => state.activeConversationId);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [mobileView, setMobileView] = useState<MobileView>("list");
+
+  // When a conversation is selected, jump to chat view on mobile
+  useEffect(() => {
+    if (activeConversationId) {
+      setMobileView("chat");
+    }
+  }, [activeConversationId]);
 
   // Sync with Graph API
   const loadConversations = async (background = false) => {
@@ -34,8 +46,6 @@ export default function Home() {
       const data = await response.json();
       
       if (data.errors && data.errors.length > 0) {
-         // Optionally toast errors to inform the user about invalid tokens
-         // We only do this if it's the main initialization to prevent spam every 10 seconds
          if (!background) {
             toast.error("Facebook API Sync Failed", {
                description: "Please check if your Access Token is valid and hasn't expired."
@@ -61,13 +71,12 @@ export default function Home() {
     
     initFetch();
     
-    // Poll every 10 seconds for new messages in the background
     const interval = setInterval(() => {
       loadConversations(true);
     }, 10000);
     
     return () => clearInterval(interval);
-  }, [pages]); // Re-run if pages change
+  }, [pages]);
 
   if (isInitializing) {
     return (
@@ -81,11 +90,38 @@ export default function Home() {
   }
 
   return (
-    <main className="flex h-screen w-full overflow-hidden bg-background text-foreground">
-      {/* 3-Pane Architecture */}
-      <Sidebar />
-      <ConversationList />
-      <ChatDetail />
+    <main className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
+      {/* Desktop: show all 3 panes side by side */}
+      {/* Mobile: show one pane at a time based on mobileView */}
+
+      {/* Sidebar */}
+      <div className={`
+        ${mobileView === "sidebar" ? "flex" : "hidden"} 
+        md:flex
+        h-full w-full md:w-auto shrink-0
+      `}>
+        <Sidebar onNavigate={() => setMobileView("list")} />
+      </div>
+
+      {/* Conversation List */}
+      <div className={`
+        ${mobileView === "list" ? "flex" : "hidden"} 
+        md:flex
+        h-full w-full md:w-auto shrink-0
+      `}>
+        <ConversationList 
+          onOpenSidebar={() => setMobileView("sidebar")} 
+        />
+      </div>
+
+      {/* Chat Detail */}
+      <div className={`
+        ${mobileView === "chat" ? "flex" : "hidden"} 
+        md:flex
+        h-full w-full md:w-auto flex-1 min-w-0
+      `}>
+        <ChatDetail onBack={() => setMobileView("list")} />
+      </div>
     </main>
   );
 }

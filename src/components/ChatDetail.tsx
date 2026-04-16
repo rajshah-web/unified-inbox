@@ -4,7 +4,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, MessageSquare, Send, Loader2 } from "lucide-react";
+import { Check, MessageSquare, Send, Loader2, ArrowLeft } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,11 @@ import { useState, useRef, useEffect } from "react";
 import type { KeyboardEvent } from "react";
 import { toast } from "sonner";
 
-export function ChatDetail() {
+interface ChatDetailProps {
+  onBack?: () => void;
+}
+
+export function ChatDetail({ onBack }: ChatDetailProps) {
   const activeConversationId = useAppStore((state) => state.activeConversationId);
   const conversations = useAppStore((state) => state.conversations);
   const pages = useAppStore((state) => state.pages);
@@ -64,7 +68,6 @@ export function ChatDetail() {
     const messageOut = inputText.trim();
     const tempId = `temp_${Date.now()}`;
     
-    // Optimistic UI: clear input and show bubble immediately
     setInputText("");
     const store = useAppStore.getState();
     store.addOptimisticMessage(activeConv.id, messageOut, activeConv.page_id, activeConv.page_name, tempId);
@@ -89,7 +92,6 @@ export function ChatDetail() {
       toast.success("Message sent!");
     } catch (error: any) {
       console.error("Send error:", error);
-      // Revert the optimistic bubble
       useAppStore.getState().removeOptimisticMessage(activeConv.id, tempId);
       
       const errMsg = error.message || "Failed to send message";
@@ -113,26 +115,35 @@ export function ChatDetail() {
   };
 
   return (
-    <div className="flex flex-1 flex-col bg-background">
+    <div className="flex flex-1 flex-col bg-background w-full">
       {/* Header */}
-      <div className="flex items-center justify-between border-b p-4 h-14">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9 border">
-            <AvatarFallback className="bg-primary/10 text-primary">
+      <div className="flex items-center justify-between border-b p-3 md:p-4 h-14">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
+          {/* Back button on mobile */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 md:hidden shrink-0 text-muted-foreground"
+            onClick={onBack}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Avatar className="h-8 w-8 md:h-9 md:w-9 border shrink-0">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs">
               {customer?.name?.substring(0, 2).toUpperCase() || "??"}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-col">
-            <span className="font-semibold leading-none">{customer?.name || "Unknown User"}</span>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-[10px] uppercase font-semibold h-4 px-1 border-primary/20 bg-primary/5 text-primary">
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold leading-none text-sm md:text-base truncate">{customer?.name || "Unknown User"}</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <Badge variant="outline" className="text-[9px] md:text-[10px] uppercase font-semibold h-4 px-1 border-primary/20 bg-primary/5 text-primary">
                 {activeConv.page_name}
               </Badge>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 shadow-sm">
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" size="sm" className="h-8 shadow-sm hidden sm:flex">
             <Check className="mr-2 h-4 w-4 text-green-500" />
             Resolve
           </Button>
@@ -140,7 +151,7 @@ export function ChatDetail() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-auto p-4" ref={scrollRef}>
+      <div className="flex-1 overflow-auto p-3 md:p-4" ref={scrollRef}>
         <div className="space-y-4">
           {activeConv.messages?.data?.map((msg, idx) => {
             const isOutbound = msg.from?.id === activeConv.page_id;
@@ -149,7 +160,7 @@ export function ChatDetail() {
               <div 
                 key={msg.id || idx} 
                 className={cn(
-                  "flex w-max max-w-[75%] flex-col gap-1",
+                  "flex w-max max-w-[85%] md:max-w-[75%] flex-col gap-1",
                   isOutbound ? "ml-auto" : ""
                 )}
               >
@@ -159,7 +170,7 @@ export function ChatDetail() {
                 </div>
                 <div
                   className={cn(
-                    "rounded-2xl px-4 py-2.5 text-sm shadow-sm",
+                    "rounded-2xl px-3 md:px-4 py-2 md:py-2.5 text-sm shadow-sm",
                     isOutbound
                       ? "bg-primary text-primary-foreground rounded-tr-sm"
                       : "bg-muted/80 text-foreground rounded-tl-sm border"
@@ -174,14 +185,14 @@ export function ChatDetail() {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-muted/10 border-t">
+      <div className="p-3 md:p-4 bg-muted/10 border-t">
         <div className="relative flex w-full items-end gap-2 p-1 border rounded-lg bg-background shadow-sm focus-within:ring-1 focus-within:ring-ring transition-shadow">
           <Textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`Reply to ${customer?.name || "Customer"}...`}
-            className="min-h-[44px] w-full resize-none border-0 shadow-none focus-visible:ring-0 p-3 pt-3 scrollbar-hide text-sm"
+            className="min-h-[40px] md:min-h-[44px] w-full resize-none border-0 shadow-none focus-visible:ring-0 p-2 md:p-3 scrollbar-hide text-sm"
             rows={1}
             disabled={isSending}
           />
@@ -201,7 +212,7 @@ export function ChatDetail() {
             </Button>
           </div>
         </div>
-        <div className="text-center mt-2 text-[10px] text-muted-foreground">
+        <div className="text-center mt-1.5 text-[10px] text-muted-foreground hidden md:block">
           Press <kbd className="font-mono bg-muted px-1 py-0.5 rounded border border-border">Enter</kbd> to send · <kbd className="font-mono bg-muted px-1 py-0.5 rounded border border-border">Shift+Enter</kbd> for new line
         </div>
       </div>

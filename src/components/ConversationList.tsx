@@ -6,13 +6,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-export function ConversationList() {
+interface ConversationListProps {
+  onOpenSidebar?: () => void;
+}
+
+export function ConversationList({ onOpenSidebar }: ConversationListProps) {
   const conversations = useAppStore((state) => state.conversations);
   const activePageFilter = useAppStore((state) => state.activePageFilter);
   const activeConversationId = useAppStore((state) => state.activeConversationId);
@@ -23,10 +27,8 @@ export function ConversationList() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredConversations = conversations.filter(c => {
-    // 1. Filter by page
     if (activePageFilter !== "ALL" && c.page_id !== activePageFilter) return false;
     
-    // 2. Filter by search query (participant name)
     if (searchQuery.trim() !== "") {
       const p = c.participants?.data?.find((p: any) => p.id !== c.page_id);
       if (p && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -38,8 +40,17 @@ export function ConversationList() {
   });
 
   return (
-    <div className="flex h-full w-[350px] flex-col border-r bg-background">
+    <div className="flex h-full w-full md:w-[350px] flex-col border-r bg-background">
       <div className="border-b p-4 h-14 flex items-center justify-between gap-2">
+        {/* Hamburger menu for mobile */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 md:hidden text-muted-foreground"
+          onClick={onOpenSidebar}
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
         <h2 className="font-semibold text-lg truncate">Messages</h2>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
           <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
@@ -62,7 +73,6 @@ export function ConversationList() {
       <ScrollArea className="flex-1">
         <div className="flex flex-col gap-1 p-3">
           {isFetching ? (
-            // Skeleton Loaders
             Array.from({ length: 6 }).map((_, i) => (
               <div key={`skeleton-${i}`} className="flex flex-col items-start gap-2 rounded-lg p-3 border border-transparent">
                 <div className="flex w-full items-center gap-3">
@@ -90,7 +100,7 @@ export function ConversationList() {
                   key={conv.id}
                   onClick={() => setActiveConversation(conv.id)}
                   className={cn(
-                    "flex flex-col items-start gap-2 rounded-lg p-3 text-left text-sm transition-all hover:bg-accent",
+                    "flex flex-col items-start gap-2 rounded-lg p-3 text-left text-sm transition-all hover:bg-accent active:bg-accent/80",
                     isActive ? "bg-accent" : "bg-transparent"
                   )}
                 >
