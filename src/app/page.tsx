@@ -8,21 +8,21 @@ import { ChatDetail } from "@/components/ChatDetail";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-// Mobile view states: sidebar | list | chat
-type MobileView = "sidebar" | "list" | "chat";
-
 export default function Home() {
   const setConversations = useAppStore((state) => state.setConversations);
   const setIsFetching = useAppStore((state) => state.setIsFetching);
   const pages = useAppStore((state) => state.pages);
   const activeConversationId = useAppStore((state) => state.activeConversationId);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [mobileView, setMobileView] = useState<MobileView>("list");
+  
+  // Mobile states
+  const [showChat, setShowChat] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // When a conversation is selected, jump to chat view on mobile
+  // When a conversation is selected, show chat on mobile
   useEffect(() => {
     if (activeConversationId) {
-      setMobileView("chat");
+      setShowChat(true);
     }
   }, [activeConversationId]);
 
@@ -80,9 +80,12 @@ export default function Home() {
 
   if (isInitializing) {
     return (
-      <main className="flex h-screen w-full items-center justify-center bg-background">
+      <main className="flex h-[100dvh] w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="relative">
+            <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary relative" />
+          </div>
           <p className="text-sm font-medium">Loading unified inbox...</p>
         </div>
       </main>
@@ -91,36 +94,44 @@ export default function Home() {
 
   return (
     <main className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
-      {/* Desktop: show all 3 panes side by side */}
-      {/* Mobile: show one pane at a time based on mobileView */}
-
-      {/* Sidebar */}
-      <div className={`
-        ${mobileView === "sidebar" ? "flex" : "hidden"} 
-        md:flex
-        h-full w-full md:w-auto shrink-0
-      `}>
-        <Sidebar onNavigate={() => setMobileView("list")} />
+      
+      {/* ---- DESKTOP LAYOUT: 3 panes side by side ---- */}
+      <div className="hidden md:flex h-full w-full">
+        <Sidebar onNavigate={() => {}} />
+        <ConversationList onOpenSidebar={() => {}} />
+        <ChatDetail onBack={() => {}} />
       </div>
 
-      {/* Conversation List */}
-      <div className={`
-        ${mobileView === "list" ? "flex" : "hidden"} 
-        md:flex
-        h-full w-full md:w-auto shrink-0
-      `}>
-        <ConversationList 
-          onOpenSidebar={() => setMobileView("sidebar")} 
-        />
-      </div>
+      {/* ---- MOBILE LAYOUT: One pane at a time with slide animations ---- */}
+      <div className="flex md:hidden h-full w-full relative">
+        
+        {/* Conversation List (always visible as base layer on mobile) */}
+        <div className={`absolute inset-0 transition-transform duration-300 ease-in-out ${showChat ? '-translate-x-1/3 scale-95 opacity-50' : 'translate-x-0 scale-100 opacity-100'}`}>
+          <ConversationList onOpenSidebar={() => setSidebarOpen(true)} />
+        </div>
+        
+        {/* Chat Detail (slides in from right) */}
+        <div className={`absolute inset-0 transition-transform duration-300 ease-in-out bg-background ${showChat ? 'translate-x-0' : 'translate-x-full'}`}>
+          <ChatDetail onBack={() => {
+            setShowChat(false);
+            useAppStore.getState().setActiveConversation(null);
+          }} />
+        </div>
 
-      {/* Chat Detail */}
-      <div className={`
-        ${mobileView === "chat" ? "flex" : "hidden"} 
-        md:flex
-        h-full w-full md:w-auto flex-1 min-w-0
-      `}>
-        <ChatDetail onBack={() => setMobileView("list")} />
+        {/* Sidebar Overlay (slides in from left) */}
+        {sidebarOpen && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm z-40 backdrop-fade-in"
+              onClick={() => setSidebarOpen(false)}
+            />
+            {/* Sidebar panel */}
+            <div className="absolute inset-y-0 left-0 w-[85%] max-w-[320px] z-50 sidebar-slide-in shadow-2xl">
+              <Sidebar onNavigate={() => setSidebarOpen(false)} />
+            </div>
+          </>
+        )}
       </div>
     </main>
   );

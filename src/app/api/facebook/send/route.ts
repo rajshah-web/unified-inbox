@@ -3,29 +3,26 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { page_token, conversation_id, message_text } = body;
+    const { page_token, user_psid, message_text } = body;
 
-    if (!page_token || !conversation_id || !message_text) {
+    if (!page_token || !user_psid || !message_text) {
       return NextResponse.json(
-        { error: "Missing required fields: page_token, conversation_id, message_text" },
+        { error: "Missing required fields: page_token, user_psid, message_text" },
         { status: 400 }
       );
     }
 
-    // Use the Conversations API (POST /{conversation-id}/messages)
-    // This is the Page Conversations endpoint — more reliable for inbox-style replies
-    // compared to /me/messages which enforces strict 24h Messenger Platform policy
-    const url = `https://graph.facebook.com/v19.0/${conversation_id}/messages?access_token=${page_token}`;
-    
+    const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${page_token}`;
+
     const payload = {
-      message: message_text,
+      recipient: { id: user_psid },
+      message: { text: message_text },
+      messaging_type: "RESPONSE",
     };
 
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       cache: 'no-store'
     });

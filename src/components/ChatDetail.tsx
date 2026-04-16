@@ -78,7 +78,7 @@ export function ChatDetail({ onBack }: ChatDetailProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           page_token: token,
-          conversation_id: activeConv.id,
+          user_psid: customer.id,
           message_text: messageOut
         }),
       });
